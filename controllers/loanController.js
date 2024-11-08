@@ -1,9 +1,18 @@
 const Loan = require('../models/Loan');
+const { validateLoanData, validateObjectId } = require('../utils/validations');
 const { calculateEMISchedule } = require('../utils/loanCalculations');
-const { createCsvStringifier } = require('csv-writer');
 
 exports.createLoan = async (req, res) => {
   try {
+    const validationError = validateLoanData(req.body);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
+    }
+
+    if (!validateObjectId(req.body.userId)) {
+      return res.status(400).json({ error: 'Invalid user ID format' });
+    }
+
     const { userId, disbursementDate, amount, interestRate, tenure } = req.body;
     const emiSchedule = calculateEMISchedule(amount, interestRate, tenure, disbursementDate);
     
@@ -29,7 +38,6 @@ exports.createLoan = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
-
 exports.getLoanLedger = async (req, res) => {
   try {
     const loan = await Loan.findById(req.params.id).populate('userId');
